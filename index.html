@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Arabic / English Text Fixer</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, "Segoe UI", Tahoma, sans-serif;
+            background: #f4f6f8;
+            color: #222;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 18px rgba(0,0,0,0.08);
+        }
+
+        h1 {
+            margin-top: 0;
+            font-size: 28px;
+        }
+
+        .description {
+            color: #555;
+            line-height: 1.6;
+            margin-bottom: 25px;
+        }
+
+        .privacy {
+            background: #eef7f1;
+            padding: 12px 15px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            font-size: 14px;
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 150px;
+            resize: vertical;
+            padding: 15px;
+            font-size: 18px;
+            line-height: 1.7;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            margin-bottom: 15px;
+
+            unicode-bidi: plaintext;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            border: none;
+            border-radius: 7px;
+            padding: 11px 18px;
+            font-size: 15px;
+            cursor: pointer;
+        }
+
+        .convert {
+            background: #1f6feb;
+            color: white;
+        }
+
+        .copy {
+            background: #198754;
+            color: white;
+        }
+
+        .clear {
+            background: #e9ecef;
+            color: #222;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        #status {
+            font-weight: bold;
+            color: #198754;
+            margin-left: 5px;
+        }
+
+        details {
+            margin-top: 25px;
+            border-top: 1px solid #ddd;
+            padding-top: 20px;
+        }
+
+        .debug {
+            background: #f5f5f5;
+            padding: 12px;
+            border-radius: 7px;
+            overflow-wrap: anywhere;
+            direction: ltr;
+            text-align: left;
+            font-family: monospace;
+            margin-top: 10px;
+        }
+
+        footer {
+            text-align: center;
+            color: #777;
+            font-size: 13px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="card">
+
+        <h1>Arabic / English Text Fixer</h1>
+
+        <div class="description">
+            Fix mixed Arabic and English text before pasting it into
+            Moodle, H5P, or other systems that have problems displaying
+            RTL and LTR text together.
+        </div>
+
+        <div class="privacy">
+            🔒 Your text is processed locally in your browser.
+            Nothing is uploaded or stored.
+        </div>
+
+
+        <label for="inputText">Original text</label>
+
+        <textarea
+            id="inputText"
+            placeholder="مثال: يحتوي قرص SSD على أقراص دوّارة داخله، مثل قرص HDD"
+        ></textarea>
+
+
+        <div class="buttons">
+
+            <button
+                class="convert"
+                onclick="convertText()">
+                Convert
+            </button>
+
+            <button
+                class="clear"
+                onclick="clearText()">
+                Clear
+            </button>
+
+        </div>
+
+
+        <label for="outputText">Fixed text</label>
+
+        <textarea
+            id="outputText"
+            readonly
+            placeholder="The converted text will appear here..."
+        ></textarea>
+
+
+        <div class="buttons">
+
+            <button
+                class="copy"
+                onclick="copyText()">
+                📋 Copy Fixed Text
+            </button>
+
+            <span id="status"></span>
+
+        </div>
+
+
+        <details>
+
+            <summary>Show invisible Unicode characters</summary>
+
+            <div
+                id="debugOutput"
+                class="debug">
+                No converted text yet.
+            </div>
+
+        </details>
+
+    </div>
+
+
+    <footer>
+        Arabic / English BiDi Text Fixer
+    </footer>
+
+</div>
+
+
+<script>
+
+const LRI = "\u2066";
+const RLI = "\u2067";
+const PDI = "\u2069";
+
+
+function containsArabic(text) {
+
+    return /[\u0600-\u06FF]/.test(text);
+
+}
+
+
+function fixText(original) {
+
+    if (!original.trim()) {
+        return "";
+    }
+
+    /*
+        Protect English words, abbreviations,
+        numbers, IP addresses and similar terms.
+    */
+
+    const pattern =
+        /[A-Za-z0-9]+(?:[._:/+\-][A-Za-z0-9]+)*/g;
+
+
+    let converted = original.replace(
+
+        pattern,
+
+        match => LRI + match + PDI
+
+    );
+
+
+    /*
+        If Arabic exists, isolate the complete
+        statement as right-to-left.
+    */
+
+    if (containsArabic(original)) {
+
+        converted =
+            RLI +
+            converted +
+            PDI;
+
+    }
+
+
+    return converted;
+
+}
+
+
+function convertText() {
+
+    const input =
+        document.getElementById("inputText").value;
+
+
+    const converted =
+        fixText(input);
+
+
+    document.getElementById("outputText").value =
+        converted;
+
+
+    showDebug(converted);
+
+
+    document.getElementById("status").textContent =
+        "";
+
+}
+
+
+async function copyText() {
+
+    const output =
+        document.getElementById("outputText").value;
+
+
+    if (!output) {
+
+        document.getElementById("status").textContent =
+            "Nothing to copy.";
+
+        return;
+
+    }
+
+
+    try {
+
+        await navigator.clipboard.writeText(output);
+
+        document.getElementById("status").textContent =
+            "✓ Copied!";
+
+    }
+
+    catch (error) {
+
+        const textarea =
+            document.getElementById("outputText");
+
+        textarea.select();
+
+        document.execCommand("copy");
+
+        document.getElementById("status").textContent =
+            "✓ Copied!";
+
+    }
+
+}
+
+
+function clearText() {
+
+    document.getElementById("inputText").value = "";
+    document.getElementById("outputText").value = "";
+
+    document.getElementById("status").textContent = "";
+
+    document.getElementById("debugOutput").textContent =
+        "No converted text yet.";
+
+}
+
+
+function showDebug(text) {
+
+    let debug =
+        text
+        .replaceAll(LRI, "[LRI]")
+        .replaceAll(RLI, "[RLI]")
+        .replaceAll(PDI, "[PDI]");
+
+
+    document.getElementById("debugOutput").textContent =
+        debug;
+
+}
+
+</script>
+
+</body>
+</html>
